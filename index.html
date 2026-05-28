@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="A Gibson-style 3D home page inspired by the movie Hackers."
+    />
+    <title>THE GIBSON</title>
+  </head>
+  <body>
+    <!-- Skip link: first focusable element, jumps keyboard/SR users to the
+         accessible text navigation that mirrors the 3D scene. -->
+    <a class="skip-link" href="#a11y-fallback">Skip to site links</a>
+
+    <!-- The 3D scene mounts here. tabindex makes it keyboard-focusable so
+         arrow-key fly navigation works once the canvas has focus. -->
+    <div
+      id="scene-root"
+      tabindex="0"
+      role="application"
+      aria-label="Gibson 3D interface. Use Tab to cycle hotspots, arrow keys to fly, Enter to open, Escape to close."
+    ></div>
+
+    <!-- Live region for announcing focus/navigation changes to screen readers. -->
+    <div id="a11y-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Hotspot detail dialog is injected/managed by ui/Overlay.ts -->
+    <div id="overlay-root"></div>
+
+    <!-- Accessible, always-available text mirror of the scene's links. -->
+    <nav id="a11y-fallback" class="a11y-fallback" aria-label="Site links"></nav>
+
+    <!-- On-screen hint, hidden once the user interacts. -->
+    <div id="hint" class="hint" aria-hidden="true">
+      <span class="hint-line">drag / swipe to look &nbsp;·&nbsp; scroll / pinch to zoom</span>
+      <span class="hint-line">tab to cycle hotspots &nbsp;·&nbsp; arrows to fly &nbsp;·&nbsp; enter to open</span>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
