@@ -3,7 +3,9 @@
   top: 0.8rem;
   right: 0.8rem;
   z-index: 92;
-  width: min(320px, calc(100vw - 1.6rem));
+  /* Panel shrinks to its content: just the toggle when collapsed, the body
+     width when expanded. */
+  width: max-content;
   border: 1px solid rgba(0, 255, 247, 0.45);
   border-radius: 8px;
   background: rgba(5, 1, 10, 0.9);
@@ -17,6 +19,7 @@
   width: 100%;
   padding: 0.55rem 0.8rem;
   border: 0;
+  border-radius: 8px;
   background: rgba(0, 255, 247, 0.1);
   color: #caffff;
   text-transform: uppercase;
@@ -25,14 +28,40 @@
   cursor: pointer;
 }
 
+.controls__toggle::after {
+  content: "\25B8";
+  opacity: 0.8;
+}
+
+/* Collapsed: show only the arrow. */
 .controls__toggle[aria-expanded="false"] {
-  border-radius: 8px;
+  text-align: center;
+}
+.controls__toggle[aria-expanded="false"] .controls__toggle-label {
+  display: none;
+}
+.controls__toggle[aria-expanded="true"] .controls__toggle-label {
+  margin-right: 0.4rem;
+}
+
+.controls__toggle[aria-expanded="true"] {
+  border-radius: 8px 8px 0 0;
+}
+
+.controls__toggle[aria-expanded="true"]::after {
+  content: " \25BE";
 }
 
 .controls__body {
   display: grid;
   gap: 0.65rem;
+  width: min(320px, calc(100vw - 1.6rem));
   padding: 0.7rem 0.8rem 0.85rem;
+}
+
+/* An element `display` rule beats the UA `[hidden]` rule, so restore it. */
+.controls__body[hidden] {
+  display: none;
 }
 
 .controls__row {

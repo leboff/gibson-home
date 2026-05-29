@@ -74,6 +74,29 @@ export class CameraRig {
   }
 
   /**
+   * Fly so a face-anchored panel of the given world height fills `fillRatio` of
+   * the viewport height. `faceOffset` is how far the panel floats off the face.
+   *
+   * The camera is given a small downward tilt (height proportional to distance)
+   * so the polar angle stays inside OrbitControls' limits; a near-level shot
+   * would hit `maxPolarAngle`, making `controls.update()` fight the fly tween so
+   * it never converges (and the on-arrival callback would never fire).
+   */
+  flyToFill(
+    mesh: THREE.Object3D,
+    panelHeight: number,
+    faceOffset: number,
+    fillRatio: number,
+    onComplete?: () => void,
+  ): void {
+    const vFov = THREE.MathUtils.degToRad(this.camera.fov);
+    const perpDistance = panelHeight / (fillRatio * 2 * Math.tan(vFov / 2));
+    const distance = perpDistance + faceOffset;
+    const height = distance * 0.18;
+    this.flyTo(mesh, onComplete, distance, height);
+  }
+
+  /**
    * Frame a hotspot panel face-on, then invoke `onComplete` once the camera has
    * arrived. Snaps (and fires immediately) under reduced motion.
    */

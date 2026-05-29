@@ -27,14 +27,20 @@ export class Controls {
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "controls__toggle";
-    toggle.textContent = "Controls";
-    toggle.setAttribute("aria-expanded", "true");
+    toggle.setAttribute("aria-label", "Toggle controls");
+    const toggleLabel = document.createElement("span");
+    toggleLabel.className = "controls__toggle-label";
+    toggleLabel.textContent = "Controls";
+    toggle.append(toggleLabel);
+    // Start minimized.
+    toggle.setAttribute("aria-expanded", "false");
 
     this.body = document.createElement("div");
     this.body.className = "controls__body";
+    this.body.hidden = true;
 
     toggle.addEventListener("click", () => {
-      const expanded = toggle.getAttribute("aria-expanded") !== "false";
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
       const next = !expanded;
       toggle.setAttribute("aria-expanded", String(next));
       this.body.hidden = !next;

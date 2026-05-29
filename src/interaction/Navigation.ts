@@ -189,7 +189,7 @@ export class Navigation {
       // Collapse the menu, fly to the new section, then grow it out afresh on
       // arrival (the field stays frozen so the target tower can't recycle).
       this.menu.hide();
-      this.rig.flyTo(mesh, () => this.presentMenu(index, mesh));
+      this.flyToFraming(mesh, index);
     } else if (fly && mesh) {
       this.rig.flyTo(mesh);
     }
@@ -213,7 +213,18 @@ export class Navigation {
     this.rig.suppressIdle(true);
     this.setHighlight(mesh);
     this.menu.hide();
-    this.rig.flyTo(mesh, () => this.presentMenu(index, mesh));
+    this.flyToFraming(mesh, index);
+  }
+
+  /** Fly so the menu panel fills ~90% of the viewport height, then present it. */
+  private flyToFraming(mesh: THREE.Mesh, index: number): void {
+    this.rig.flyToFill(
+      mesh,
+      this.menu.panelHeight,
+      this.menu.faceOffset,
+      0.9,
+      () => this.presentMenu(index, mesh),
+    );
   }
 
   private closeMenu(): void {

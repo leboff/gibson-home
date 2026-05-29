@@ -78,6 +78,16 @@ export class GibsonMenu {
     return this.open;
   }
 
+  /** World-space height of the panel (used to frame the camera on it). */
+  get panelHeight(): number {
+    return MENU_WORLD_HEIGHT;
+  }
+
+  /** How far the panel floats in front of its anchor tower face. */
+  get faceOffset(): number {
+    return FACE_OFFSET;
+  }
+
   /** The single mesh used as a raycast target while the menu is open. */
   get pickMesh(): THREE.Mesh {
     return this.mesh;
