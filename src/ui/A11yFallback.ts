@@ -1,4 +1,4 @@
-import { TOWERS } from "../config/towers";
+import { CONTENT_TOWERS } from "../config/towers";
 
 /**
  * Builds a visually-hidden (but focusable) text list of every hotspot link from
@@ -14,7 +14,7 @@ export function buildA11yFallback(nav: HTMLElement): void {
 
   const list = document.createElement("ul");
 
-  for (const tower of TOWERS) {
+  for (const tower of CONTENT_TOWERS) {
     for (const hotspot of tower.hotspots ?? []) {
       const li = document.createElement("li");
       const url = hotspot.link.url.trim();

@@ -8,6 +8,8 @@ import { Picker } from "./interaction/Picker";
 import { Navigation } from "./interaction/Navigation";
 import { Overlay } from "./ui/Overlay";
 import { GibsonMenu } from "./scene/GibsonMenu";
+import { DEFAULT_FIELD_PARAMS } from "./config/towers";
+import { Controls } from "./ui/Controls";
 import { buildA11yFallback } from "./ui/A11yFallback";
 
 function bootstrap(): void {
@@ -23,9 +25,13 @@ function bootstrap(): void {
   const rig = new CameraRig(sceneRoot, caps.prefersReducedMotion);
 
   const gibson = new GibsonScene(sceneRoot, rig.camera, caps);
+  const fieldParams = {
+    ...DEFAULT_FIELD_PARAMS,
+    colors: [...DEFAULT_FIELD_PARAMS.colors],
+  };
 
   // Fewer tiles on mobile (the denser fog hides the smaller field's edge).
-  const field = new TowerField(caps.isMobile ? 1 : 2);
+  const field = new TowerField(caps.isMobile ? 1 : 2, fieldParams);
   const grid = new GridFloor();
   const menu = new GibsonMenu();
   gibson.scene.add(grid.object, field.object, menu.object);
@@ -45,6 +51,17 @@ function bootstrap(): void {
     menu,
     (row) => navigation.selectMenuRow(row),
   );
+  new Controls(document.body, fieldParams, (next) => {
+    fieldParams.decorativeCount = next.decorativeCount;
+    fieldParams.tileSize = next.tileSize;
+    fieldParams.minHeight = next.minHeight;
+    fieldParams.maxHeight = next.maxHeight;
+    fieldParams.colors = [...next.colors];
+    navigation.reset();
+    field.rebuild(fieldParams);
+    const { x, z } = rig.camera.position;
+    field.update(x, z);
+  });
 
   // Hide the hint after the first interaction.
   let hintHidden = false;

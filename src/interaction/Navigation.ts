@@ -250,6 +250,16 @@ export class Navigation {
       : `Focused ${logical.hotspot.link.title} on ${logical.towerLabel}. Press Enter to open.`;
   }
 
+  reset(): void {
+    this.closeMenu();
+    this.currentIndex = -1;
+    this.pressed.clear();
+    this.rig.moveForward = 0;
+    this.rig.moveRight = 0;
+    this.setHighlight(null);
+    this.live.textContent = "Tower field rebuilt.";
+  }
+
   dispose(): void {
     this.sceneRoot.removeEventListener("keydown", this.onKeyDown);
     this.sceneRoot.removeEventListener("keyup", this.onKeyUp);

@@ -1,0 +1,88 @@
+.controls {
+  position: fixed;
+  top: 0.8rem;
+  right: 0.8rem;
+  z-index: 92;
+  width: min(320px, calc(100vw - 1.6rem));
+  border: 1px solid rgba(0, 255, 247, 0.45);
+  border-radius: 8px;
+  background: rgba(5, 1, 10, 0.9);
+  box-shadow: 0 0 18px rgba(0, 255, 247, 0.2);
+  pointer-events: auto;
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+}
+
+.controls__toggle {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border: 0;
+  background: rgba(0, 255, 247, 0.1);
+  color: #caffff;
+  text-transform: uppercase;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.controls__toggle[aria-expanded="false"] {
+  border-radius: 8px;
+}
+
+.controls__body {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.7rem 0.8rem 0.85rem;
+}
+
+.controls__row {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.controls__row-top {
+  display: flex;
+  justify-content: space-between;
+  text-transform: uppercase;
+  color: rgba(200, 255, 255, 0.85);
+}
+
+.controls__value {
+  color: #fff;
+}
+
+.controls input[type="range"] {
+  width: 100%;
+}
+
+.controls__colors {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.controls__colors legend {
+  width: 100%;
+  margin-bottom: 0.15rem;
+  color: rgba(200, 255, 255, 0.85);
+  text-transform: uppercase;
+}
+
+.controls__chip {
+  border: 1px solid color-mix(in srgb, var(--chip) 70%, #000);
+  border-radius: 999px;
+  padding: 0.2rem 0.45rem;
+  background: color-mix(in srgb, var(--chip) 14%, transparent);
+  color: #d9f9ff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-transform: uppercase;
+}
+
+.controls__chip input {
+  margin: 0;
+}

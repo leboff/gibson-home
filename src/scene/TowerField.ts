@@ -1,5 +1,9 @@
 import * as THREE from "three";
-import { TILE_SIZE, TOWERS } from "../config/towers";
+import {
+  DEFAULT_FIELD_PARAMS,
+  generateTowerConfigs,
+  type FieldParams,
+} from "../config/towers";
 import type { Hotspot } from "../types";
 import { Tower, type HotspotUserData } from "./Tower";
 
@@ -28,15 +32,20 @@ export class TowerField {
   private readonly towers: Tower[] = [];
   private readonly tiles: THREE.Group[] = [];
   private readonly radius: number;
+  private params: FieldParams;
   private frozen = false;
 
-  constructor(tileRadius = 2) {
+  constructor(tileRadius = 2, params: FieldParams = DEFAULT_FIELD_PARAMS) {
     this.radius = tileRadius;
+    this.params = { ...params, colors: [...params.colors] };
     this.object = new THREE.Group();
+    this.build();
+  }
 
+  private build(): void {
     // Prototype tile: all configured towers built once.
     const prototype = new THREE.Group();
-    for (const config of TOWERS) {
+    for (const config of generateTowerConfigs(this.params)) {
       const tower = new Tower(config);
       this.towers.push(tower);
       prototype.add(tower.object);
@@ -65,6 +74,7 @@ export class TowerField {
         });
       }
     }
+    this.object.updateMatrixWorld(true);
   }
 
   /**
@@ -76,16 +86,38 @@ export class TowerField {
     this.frozen = frozen;
   }
 
+  rebuild(params: FieldParams): void {
+    this.params = { ...params, colors: [...params.colors] };
+    this.disposeContents();
+    this.logicalHotspots.length = 0;
+    this.hotspotMeshes.length = 0;
+    this.build();
+  }
+
+  private disposeContents(): void {
+    // Remove tiles from the scene before disposing GPU resources. Clones share
+    // geometry/materials with the prototype — disposing while still in-scene
+    // leaves every tile with dead buffers.
+    this.tiles.forEach((tile) => this.object.remove(tile));
+    this.tiles.length = 0;
+    this.towers.forEach((t) => t.dispose());
+    this.towers.length = 0;
+  }
+
   /** Recentre the tile grid on the camera so the field appears endless. */
   update(cameraX: number, cameraZ: number): void {
     if (this.frozen) return;
-    const cx = Math.round(cameraX / TILE_SIZE);
-    const cz = Math.round(cameraZ / TILE_SIZE);
+    const cx = Math.round(cameraX / this.params.tileSize);
+    const cz = Math.round(cameraZ / this.params.tileSize);
 
     let t = 0;
     for (let i = -this.radius; i <= this.radius; i++) {
       for (let j = -this.radius; j <= this.radius; j++) {
-        this.tiles[t++].position.set((cx + i) * TILE_SIZE, 0, (cz + j) * TILE_SIZE);
+        this.tiles[t++].position.set(
+          (cx + i) * this.params.tileSize,
+          0,
+          (cz + j) * this.params.tileSize,
+        );
       }
     }
     this.object.updateMatrixWorld(true);
@@ -110,6 +142,6 @@ export class TowerField {
   }
 
   dispose(): void {
-    this.towers.forEach((t) => t.dispose());
+    this.disposeContents();
   }
 }
