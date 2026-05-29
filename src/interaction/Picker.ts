@@ -1,9 +1,13 @@
 import * as THREE from "three";
 import type { HotspotUserData } from "../scene/Tower";
+import type { GibsonMenu } from "../scene/GibsonMenu";
 
 /**
  * Turns a tap/click into a hotspot selection via raycasting, ignoring drags
  * (so orbiting the camera doesn't trigger a selection).
+ *
+ * While the Gibson menu is open it takes pointer precedence: a tap on the menu
+ * panel resolves to a row (via UV mapping) and routes to `onPickMenuRow`.
  */
 export class Picker {
   private readonly raycaster = new THREE.Raycaster();
@@ -17,6 +21,8 @@ export class Picker {
     private readonly camera: THREE.Camera,
     private readonly targets: THREE.Object3D[],
     private readonly onPick: (data: HotspotUserData, mesh: THREE.Mesh) => void,
+    private readonly menu: GibsonMenu,
+    private readonly onPickMenuRow: (row: number) => void,
   ) {
     dom.addEventListener("pointerdown", this.handleDown);
     dom.addEventListener("pointerup", this.handleUp);
@@ -37,12 +43,23 @@ export class Picker {
     const rect = this.dom.getBoundingClientRect();
     this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hits = this.raycaster.intersectObjects(this.targets, false);
+
+    // The open menu sits in front of the towers, so test it first.
+    const objects: THREE.Object3D[] = this.menu.isOpen
+      ? [this.menu.pickMesh, ...this.targets]
+      : this.targets;
+    const hits = this.raycaster.intersectObjects(objects, false);
     if (hits.length === 0) return;
 
-    const mesh = hits[0].object as THREE.Mesh;
+    const hit = hits[0];
+    if (this.menu.isOpen && hit.object === this.menu.pickMesh) {
+      const row = this.menu.rowAtUv(hit.uv);
+      if (row !== null) this.onPickMenuRow(row);
+      return;
+    }
+
+    const mesh = hit.object as THREE.Mesh;
     const data = mesh.userData as HotspotUserData;
     if (data?.kind === "hotspot") this.onPick(data, mesh);
   };

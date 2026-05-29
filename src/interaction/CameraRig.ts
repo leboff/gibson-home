@@ -20,9 +20,11 @@ export class CameraRig {
   moveRight = 0;
 
   private flying = false;
+  private onArrive: (() => void) | null = null;
   private readonly flyPos = new THREE.Vector3();
   private readonly flyTarget = new THREE.Vector3();
   private lastInteraction = 0;
+  private idleSuppressed = false;
   private readonly reducedMotion: boolean;
   private idleEnabled: boolean;
 
@@ -66,8 +68,16 @@ export class CameraRig {
     this.onInteract();
   }
 
-  /** Frame a hotspot panel face-on. Snaps instantly under reduced motion. */
-  flyTo(mesh: THREE.Object3D, distance = 24, height = 5): void {
+  /** Suppress the automatic idle flythrough (e.g. while a menu is open). */
+  suppressIdle(suppressed: boolean): void {
+    this.idleSuppressed = suppressed;
+  }
+
+  /**
+   * Frame a hotspot panel face-on, then invoke `onComplete` once the camera has
+   * arrived. Snaps (and fires immediately) under reduced motion.
+   */
+  flyTo(mesh: THREE.Object3D, onComplete?: () => void, distance = 24, height = 5): void {
     const p = mesh.getWorldPosition(new THREE.Vector3());
     const normal = mesh.getWorldDirection(new THREE.Vector3()).normalize();
     this.flyTarget.copy(p);
@@ -75,15 +85,23 @@ export class CameraRig {
     this.flyPos.y += height;
 
     this.onInteract();
+    this.onArrive = onComplete ?? null;
 
     if (this.reducedMotion) {
       this.camera.position.copy(this.flyPos);
       this.controls.target.copy(this.flyTarget);
       this.controls.update();
+      this.fireArrive();
       return;
     }
     this.flying = true;
     this.controls.enabled = false;
+  }
+
+  private fireArrive(): void {
+    const cb = this.onArrive;
+    this.onArrive = null;
+    cb?.();
   }
 
   /** Horizontal forward direction (camera look projected onto the ground). */
@@ -106,6 +124,7 @@ export class CameraRig {
       ) {
         this.flying = false;
         this.controls.enabled = true;
+        this.fireArrive();
       }
       return;
     }
@@ -121,7 +140,11 @@ export class CameraRig {
         .multiplyScalar(this.moveSpeed * dt);
       this.camera.position.add(delta);
       this.controls.target.add(delta);
-    } else if (this.idleEnabled && performance.now() - this.lastInteraction > 6000) {
+    } else if (
+      this.idleEnabled &&
+      !this.idleSuppressed &&
+      performance.now() - this.lastInteraction > 6000
+    ) {
       // Gentle automatic flythrough after a spell of inactivity.
       const drift = forward.multiplyScalar(this.idleSpeed * dt);
       this.camera.position.add(drift);

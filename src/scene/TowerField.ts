@@ -28,6 +28,7 @@ export class TowerField {
   private readonly towers: Tower[] = [];
   private readonly tiles: THREE.Group[] = [];
   private readonly radius: number;
+  private frozen = false;
 
   constructor(tileRadius = 2) {
     this.radius = tileRadius;
@@ -66,8 +67,18 @@ export class TowerField {
     }
   }
 
+  /**
+   * Freeze/unfreeze tile recentring. While frozen the grid stops following the
+   * camera, so a tower instance the menu is anchored to can't be recycled out
+   * from under it mid-interaction.
+   */
+  setFrozen(frozen: boolean): void {
+    this.frozen = frozen;
+  }
+
   /** Recentre the tile grid on the camera so the field appears endless. */
   update(cameraX: number, cameraZ: number): void {
+    if (this.frozen) return;
     const cx = Math.round(cameraX / TILE_SIZE);
     const cz = Math.round(cameraZ / TILE_SIZE);
 

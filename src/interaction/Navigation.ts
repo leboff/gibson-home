@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { CameraRig } from "./CameraRig";
 import type { LogicalHotspot, TowerField } from "../scene/TowerField";
 import type { Overlay } from "../ui/Overlay";
+import type { GibsonMenu } from "../scene/GibsonMenu";
 import type { HotspotUserData } from "../scene/Tower";
 
 const HIGHLIGHT_EMISSIVE = 2.4;
@@ -22,6 +23,9 @@ const HIGHLIGHT_SCALE = 1.35;
 export class Navigation {
   private currentIndex = -1;
   private highlighted: THREE.Mesh | null = null;
+  // True from the moment a menu starts opening until it is closed — including
+  // the fly transition where the panel is briefly hidden between sections.
+  private menuActive = false;
   private readonly pressed = new Set<string>();
 
   constructor(
@@ -30,6 +34,7 @@ export class Navigation {
     private readonly field: TowerField,
     private readonly overlay: Overlay,
     private readonly live: HTMLElement,
+    private readonly menu: GibsonMenu,
   ) {
     sceneRoot.addEventListener("keydown", this.onKeyDown);
     sceneRoot.addEventListener("keyup", this.onKeyUp);
@@ -43,10 +48,19 @@ export class Navigation {
     const idx = this.field.logicalHotspots.findIndex(
       (l) => l.hotspot.id === data.hotspot.id && l.towerId === data.towerId,
     );
-    if (idx >= 0) {
-      this.focusIndex(idx, false);
+    if (idx < 0) return;
+    if (this.menuActive) {
+      this.focusIndex(idx, true);
+    } else {
+      this.currentIndex = idx;
       this.openCurrent();
     }
+  }
+
+  /** Selection coming from a tap/click on an open menu row. */
+  selectMenuRow(row: number): void {
+    if (row < 0 || row >= this.field.logicalHotspots.length) return;
+    this.focusIndex(row, true);
   }
 
   private onBlur = (): void => {
@@ -56,6 +70,39 @@ export class Navigation {
   };
 
   private onKeyDown = (e: KeyboardEvent): void => {
+    // While the menu is active, arrows/WASD walk the rows instead of flying.
+    if (this.menuActive) {
+      switch (e.key) {
+        case "ArrowUp":
+        case "ArrowLeft":
+        case "w":
+        case "W":
+        case "a":
+        case "A":
+          e.preventDefault();
+          this.cycle(-1);
+          return;
+        case "ArrowDown":
+        case "ArrowRight":
+        case "s":
+        case "S":
+        case "d":
+        case "D":
+          e.preventDefault();
+          this.cycle(1);
+          return;
+        case "Enter":
+        case " ":
+        case "Spacebar":
+          e.preventDefault();
+          return;
+        case "Escape":
+          e.preventDefault();
+          this.closeMenu();
+          return;
+      }
+    }
+
     switch (e.key) {
       case "Tab":
         e.preventDefault();
@@ -72,6 +119,10 @@ export class Navigation {
         if (this.currentIndex >= 0) this.openCurrent();
         return;
       case "Escape":
+        if (this.menuActive) {
+          this.closeMenu();
+          return;
+        }
         if (!this.overlay.isOpen) {
           // Release the application so Tab reaches the page's link list.
           this.sceneRoot.blur();
@@ -133,14 +184,50 @@ export class Navigation {
       this.rig.camera.position,
     );
     this.setHighlight(mesh);
-    if (mesh && fly) this.rig.flyTo(mesh);
+
+    if (this.menuActive && mesh) {
+      // Collapse the menu, fly to the new section, then grow it out afresh on
+      // arrival (the field stays frozen so the target tower can't recycle).
+      this.menu.hide();
+      this.rig.flyTo(mesh, () => this.presentMenu(index, mesh));
+    } else if (fly && mesh) {
+      this.rig.flyTo(mesh);
+    }
     this.announce(logical);
   }
 
   private openCurrent(): void {
     if (this.currentIndex < 0) return;
-    const logical = this.field.logicalHotspots[this.currentIndex];
-    this.overlay.show(logical.hotspot, logical.towerLabel, logical.hotspot.accentColor);
+    const index = this.currentIndex;
+    const logical = this.field.logicalHotspots[index];
+    const mesh = this.field.nearestHotspotMesh(
+      logical.hotspot.id,
+      this.rig.camera.position,
+    );
+    if (!mesh) return;
+
+    // Freeze the tile grid so the chosen tower can't recycle away mid-fly, and
+    // suppress idle drift so the framed menu stays put.
+    this.menuActive = true;
+    this.field.setFrozen(true);
+    this.rig.suppressIdle(true);
+    this.setHighlight(mesh);
+    this.menu.hide();
+    this.rig.flyTo(mesh, () => this.presentMenu(index, mesh));
+  }
+
+  private closeMenu(): void {
+    this.menuActive = false;
+    this.menu.hide();
+    this.field.setFrozen(false);
+    this.rig.suppressIdle(false);
+  }
+
+  /** Build and show the in-world Gibson menu anchored to a hotspot face. */
+  private presentMenu(index: number, mesh: THREE.Mesh): void {
+    const items = this.field.logicalHotspots.map((l) => l.hotspot.link.title);
+    const accent = this.field.logicalHotspots[index].hotspot.accentColor ?? "cyan";
+    this.menu.show(items, index, mesh, accent);
   }
 
   private setHighlight(mesh: THREE.Mesh | null): void {
@@ -158,7 +245,9 @@ export class Navigation {
   }
 
   private announce(logical: LogicalHotspot): void {
-    this.live.textContent = `Focused ${logical.hotspot.link.title} on ${logical.towerLabel}. Press Enter to open.`;
+    this.live.textContent = this.menuActive
+      ? `${logical.hotspot.link.title} selected. Use arrow keys to browse, Escape to close.`
+      : `Focused ${logical.hotspot.link.title} on ${logical.towerLabel}. Press Enter to open.`;
   }
 
   dispose(): void {

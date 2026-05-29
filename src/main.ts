@@ -7,6 +7,7 @@ import { TowerField } from "./scene/TowerField";
 import { Picker } from "./interaction/Picker";
 import { Navigation } from "./interaction/Navigation";
 import { Overlay } from "./ui/Overlay";
+import { GibsonMenu } from "./scene/GibsonMenu";
 import { buildA11yFallback } from "./ui/A11yFallback";
 
 function bootstrap(): void {
@@ -26,16 +27,23 @@ function bootstrap(): void {
   // Fewer tiles on mobile (the denser fog hides the smaller field's edge).
   const field = new TowerField(caps.isMobile ? 1 : 2);
   const grid = new GridFloor();
-  gibson.scene.add(grid.object, field.object);
+  const menu = new GibsonMenu();
+  gibson.scene.add(grid.object, field.object, menu.object);
 
-  // UI
+  // UI (the HTML overlay stays as a hidden accessibility fallback alongside
+  // the visually-hidden link list; the in-world menu is the visual presenter).
   const overlay = new Overlay(overlayRoot);
   buildA11yFallback(fallbackNav);
 
   // Interaction
-  const navigation = new Navigation(sceneRoot, rig, field, overlay, liveRegion);
-  new Picker(sceneRoot, rig.camera, field.hotspotMeshes, (data) =>
-    navigation.selectByMesh(data),
+  const navigation = new Navigation(sceneRoot, rig, field, overlay, liveRegion, menu);
+  new Picker(
+    sceneRoot,
+    rig.camera,
+    field.hotspotMeshes,
+    (data) => navigation.selectByMesh(data),
+    menu,
+    (row) => navigation.selectMenuRow(row),
   );
 
   // Hide the hint after the first interaction.
@@ -59,6 +67,7 @@ function bootstrap(): void {
     const { x, z } = rig.camera.position;
     field.update(x, z);
     grid.update(x, z);
+    menu.update(dt);
   });
 
   // Give the canvas focus so keyboard nav works without an extra click on

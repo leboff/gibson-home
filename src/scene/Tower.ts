@@ -4,6 +4,8 @@ import { makeEdgeMaterial, makeNeonMaterial, resolveColor } from "./materials";
 
 const DATA_TEXTURE_WIDTH = 512;
 const DATA_TEXTURE_HEIGHT = 1024;
+const LABEL_TEXTURE_WIDTH = 512;
+const LABEL_TEXTURE_HEIGHT = 144;
 const DATA_GLYPHS = "01ABCDEF:/[]{}<>_-";
 const DATA_CORPUS = [
   "GIBSON KERNEL ROOT TRACE LOGIN SYS NODE DAEMON",
@@ -223,23 +225,36 @@ export class Tower {
     const { width, depth } = this.footprintAt(config, targetY);
 
     const face: Face = hotspot.face ?? "s";
-    const panelW = Math.max(2, Math.min(width, depth) * 0.7);
-    const panelH = panelW;
     const baseEmissive = 0.9;
-
     const accent = hotspot.accentColor ?? config.colorKey;
+
+    // Glowing title text printed flush on the tower face (the clickable
+    // hotspot). The expanded Hackers-style menu is presented separately.
+    const faceWidth = face === "e" || face === "w" ? depth : width;
+    const panelW = faceWidth * 0.46;
+    const panelH = panelW * (LABEL_TEXTURE_HEIGHT / LABEL_TEXTURE_WIDTH);
+
+    const texture = this.createHotspotLabel(hotspot.link.title, accent);
+    this.textures.push(texture);
+
     const geo = new THREE.PlaneGeometry(panelW, panelH);
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x05010a,
-      emissive: resolveColor(accent),
+      color: 0x000000,
+      map: texture,
+      emissive: 0xffffff,
+      emissiveMap: texture,
       emissiveIntensity: baseEmissive,
+      transparent: true,
+      depthWrite: false,
       side: THREE.DoubleSide,
-      roughness: 0.3,
+      roughness: 1,
       metalness: 0,
     });
     const mesh = new THREE.Mesh(geo, mat);
+    mesh.renderOrder = 3;
 
-    const eps = 0.15;
+    // Sit the text just off the slab surface so it reads as printed on it.
+    const eps = 0.12;
     switch (face) {
       case "s":
         mesh.position.set(0, targetY, depth / 2 + eps);
@@ -270,6 +285,54 @@ export class Tower {
     this.hotspotMeshes.push(mesh);
     this.geometries.push(geo);
     return mesh;
+  }
+
+  /** Draws a neon menu-item label ("TITLE ▶") on a transparent canvas. */
+  private createHotspotLabel(title: string, accentKey: string): THREE.CanvasTexture {
+    const canvas = document.createElement("canvas");
+    canvas.width = LABEL_TEXTURE_WIDTH;
+    canvas.height = LABEL_TEXTURE_HEIGHT;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not create hotspot label texture");
+
+    const color = resolveColor(accentKey);
+    const css = `rgb(${Math.round(color.r * 255)}, ${Math.round(
+      color.g * 255,
+    )}, ${Math.round(color.b * 255)})`;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = css;
+    ctx.strokeStyle = css;
+    ctx.shadowColor = css;
+    ctx.shadowBlur = 18;
+
+    const midY = canvas.height / 2;
+    const arrowW = 46;
+    const arrowX = canvas.width - 70;
+    const textX = 30;
+    const maxTextWidth = arrowX - textX - 30;
+
+    const text = title.toUpperCase();
+    let fontSize = 86;
+    ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+    while (ctx.measureText(text).width > maxTextWidth && fontSize > 24) {
+      fontSize -= 2;
+      ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+    }
+    ctx.fillText(text, textX, midY);
+
+    ctx.beginPath();
+    ctx.moveTo(arrowX, midY - 28);
+    ctx.lineTo(arrowX + arrowW, midY);
+    ctx.lineTo(arrowX, midY + 28);
+    ctx.closePath();
+    ctx.fill();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.anisotropy = 4;
+    return texture;
   }
 
   /** Uniform Gibson slabs use the largest configured footprint for every height. */
