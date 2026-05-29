@@ -36,11 +36,14 @@ export function makeNeonMaterial(key: PaletteKey | string): THREE.MeshStandardMa
   if (!mat) {
     const color = resolveColor(key);
     mat = new THREE.MeshStandardMaterial({
-      color: 0x04010c,
+      color,
       emissive: color,
-      emissiveIntensity: 0.16,
-      roughness: 0.5,
-      metalness: 0.1,
+      emissiveIntensity: 0.24,
+      opacity: 0.26,
+      transparent: true,
+      roughness: 0.22,
+      metalness: 0,
+      depthWrite: false,
     });
     faceCache.set(cacheKey, mat);
   }
