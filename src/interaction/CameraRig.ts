@@ -41,10 +41,12 @@ export class CameraRig {
       0.1,
       2000,
     );
-    this.camera.position.set(0, 26, 64);
+    // Open on the film's signature shot: low in the canyon, looking straight
+    // down the central data corridor toward the vanishing point.
+    this.camera.position.set(0, 16, 58);
 
     this.controls = new OrbitControls(this.camera, domElement);
-    this.controls.target.set(0, 14, 0);
+    this.controls.target.set(0, 14, -6);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.minDistance = 12;
@@ -100,7 +102,10 @@ export class CameraRig {
    * Frame a hotspot panel face-on, then invoke `onComplete` once the camera has
    * arrived. Snaps (and fires immediately) under reduced motion.
    */
-  flyTo(mesh: THREE.Object3D, onComplete?: () => void, distance = 24, height = 5): void {
+  // The default standoff must fit inside the corridor aisle (~20 units of
+  // clearance between facing tower rows), or the camera lands inside the
+  // opposite row.
+  flyTo(mesh: THREE.Object3D, onComplete?: () => void, distance = 14, height = 3.5): void {
     const p = mesh.getWorldPosition(new THREE.Vector3());
     const normal = mesh.getWorldDirection(new THREE.Vector3()).normalize();
     this.flyTarget.copy(p);

@@ -1,7 +1,7 @@
 :root {
-  --neon-cyan: #00fff7;
-  --neon-magenta: #ff2bd6;
-  --void: #05010a;
+  --neon-cyan: #86e8ff;
+  --neon-magenta: #7b4dff;
+  --void: #000002;
   --font-mono: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo",
     "Courier New", monospace;
 }
@@ -32,7 +32,7 @@ body {
 
 #scene-root:focus-visible {
   /* Subtle inset glow when the canvas itself holds keyboard focus. */
-  box-shadow: inset 0 0 0 2px rgba(0, 255, 247, 0.5);
+  box-shadow: inset 0 0 0 2px rgba(134, 232, 255, 0.5);
 }
 
 #scene-root canvas {
@@ -81,7 +81,7 @@ body {
   max-width: min(90vw, 360px);
   padding: 0;
   background: rgba(5, 1, 10, 0.92);
-  border: 1px solid rgba(0, 255, 247, 0.4);
+  border: 1px solid rgba(134, 232, 255, 0.4);
   border-radius: 6px;
   clip: rect(0, 0, 0, 0);
   width: 1px;
@@ -135,7 +135,7 @@ body {
   text-align: center;
   font-size: 0.7rem;
   letter-spacing: 0.08em;
-  color: rgba(0, 255, 247, 0.55);
+  color: rgba(134, 232, 255, 0.55);
   pointer-events: none;
   text-transform: uppercase;
   transition: opacity 0.6s ease;

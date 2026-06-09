@@ -7,15 +7,25 @@ import type { PaletteKey } from "../scene/materials";
  *
  * Towers are laid out within one square tile of size TILE_SIZE x TILE_SIZE.
  * The tile is repeated across the ground plane (see TowerField) to create the
- * endless, loop-in-any-direction Gibson field.
+ * endless Gibson field.
+ *
+ * The layout reproduces the film's fly-through: monolith slabs aligned in
+ * rows flanking a central data corridor down the Z axis, with a second outer
+ * row behind each inner row. Content towers sit on the inner rows with their
+ * hotspots facing the aisle.
  *
  * Only some towers carry `hotspots`; the rest are decorative skyline. To wire a
  * hotspot to a real page later, set its `link.url`.
  */
 
 export const TILE_SIZE = 90;
-export const DEFAULT_DECORATIVE_COUNT = 8;
+export const DEFAULT_DECORATIVE_COUNT = 14;
 const ALL_COLORS: PaletteKey[] = ["cyan", "magenta", "green", "amber", "violet", "blue"];
+
+// Corridor geometry, as fractions of the tile size.
+const INNER_ROW = 0.18;
+const OUTER_ROW = 0.38;
+const SLOTS_PER_ROW = 5;
 
 export interface FieldParams {
   decorativeCount: number;
@@ -28,28 +38,26 @@ export interface FieldParams {
 export const DEFAULT_FIELD_PARAMS: FieldParams = {
   decorativeCount: DEFAULT_DECORATIVE_COUNT,
   tileSize: TILE_SIZE,
-  minHeight: 9,
-  maxHeight: 46,
-  colors: [...ALL_COLORS],
+  minHeight: 18,
+  maxHeight: 48,
+  // The film palette: icy cyan and teal-green glass, blue accents.
+  colors: ["cyan", "green", "blue"],
 };
 
 export const CONTENT_TOWERS: TowerConfig[] = [
   // ---- Towers WITH hotspots (the navigable content) ----
+  // Inner-left towers face "e" (toward the aisle), inner-right face "w".
   {
     id: "resume",
     label: "Resume tower",
-    position: [-28, -22],
+    position: [-16, -36],
     colorKey: "cyan",
-    blocks: [
-      { width: 8, depth: 8, height: 14 },
-      { width: 6, depth: 6, height: 10 },
-      { width: 4, depth: 4, height: 8 },
-    ],
+    blocks: [{ width: 10, depth: 10, height: 34 }],
     hotspots: [
       {
         id: "resume",
         heightFraction: 0.55,
-        face: "s",
+        face: "e",
         link: {
           title: "Resume",
           description:
@@ -62,19 +70,14 @@ export const CONTENT_TOWERS: TowerConfig[] = [
   {
     id: "projects",
     label: "Projects tower",
-    position: [22, -30],
-    colorKey: "magenta",
-    blocks: [
-      { width: 10, depth: 10, height: 18 },
-      { width: 7, depth: 7, height: 12 },
-      { width: 5, depth: 5, height: 9 },
-      { width: 3, depth: 3, height: 6 },
-    ],
+    position: [16, -18],
+    colorKey: "green",
+    blocks: [{ width: 11, depth: 11, height: 42 }],
     hotspots: [
       {
         id: "projects",
         heightFraction: 0.45,
-        face: "s",
+        face: "w",
         link: {
           title: "Projects",
           description:
@@ -85,8 +88,8 @@ export const CONTENT_TOWERS: TowerConfig[] = [
       {
         id: "labs",
         heightFraction: 0.78,
-        face: "e",
-        accentColor: "#39ff14",
+        face: "s",
+        accentColor: "amber",
         link: {
           title: "Labs",
           description: "Rougher prototypes and weekend experiments.",
@@ -98,17 +101,14 @@ export const CONTENT_TOWERS: TowerConfig[] = [
   {
     id: "about",
     label: "About tower",
-    position: [-6, 8],
-    colorKey: "green",
-    blocks: [
-      { width: 9, depth: 9, height: 16 },
-      { width: 6, depth: 6, height: 11 },
-    ],
+    position: [-16, 0],
+    colorKey: "cyan",
+    blocks: [{ width: 10, depth: 10, height: 38 }],
     hotspots: [
       {
         id: "about",
         heightFraction: 0.6,
-        face: "s",
+        face: "e",
         link: {
           title: "About",
           description: "Who I am and what I care about building.",
@@ -120,13 +120,9 @@ export const CONTENT_TOWERS: TowerConfig[] = [
   {
     id: "writing",
     label: "Writing tower",
-    position: [34, 18],
-    colorKey: "amber",
-    blocks: [
-      { width: 7, depth: 7, height: 13 },
-      { width: 5, depth: 5, height: 10 },
-      { width: 3, depth: 3, height: 7 },
-    ],
+    position: [16, 18],
+    colorKey: "blue",
+    blocks: [{ width: 10, depth: 10, height: 30 }],
     hotspots: [
       {
         id: "writing",
@@ -143,17 +139,14 @@ export const CONTENT_TOWERS: TowerConfig[] = [
   {
     id: "contact",
     label: "Contact tower",
-    position: [4, 34],
-    colorKey: "violet",
-    blocks: [
-      { width: 8, depth: 8, height: 12 },
-      { width: 5, depth: 5, height: 9 },
-    ],
+    position: [-16, 36],
+    colorKey: "green",
+    blocks: [{ width: 10, depth: 10, height: 36 }],
     hotspots: [
       {
         id: "contact",
         heightFraction: 0.55,
-        face: "n",
+        face: "e",
         link: {
           title: "Contact",
           description: "Ways to reach me — email and social links.",
@@ -162,18 +155,6 @@ export const CONTENT_TOWERS: TowerConfig[] = [
       },
     ],
   },
-
-];
-
-const BASE_DECORATIVE_TOWERS: TowerConfig[] = [
-  { id: "d1", label: "tower", position: [-40, 14], colorKey: "blue", blocks: [{ width: 6, depth: 6, height: 22 }] },
-  { id: "d2", label: "tower", position: [-18, 38], colorKey: "cyan", blocks: [{ width: 5, depth: 5, height: 9 }] },
-  { id: "d3", label: "tower", position: [12, -8], colorKey: "blue", blocks: [{ width: 7, depth: 7, height: 26 }] },
-  { id: "d4", label: "tower", position: [40, -8], colorKey: "violet", blocks: [{ width: 6, depth: 6, height: 15 }] },
-  { id: "d5", label: "tower", position: [-38, -40], colorKey: "magenta", blocks: [{ width: 8, depth: 8, height: 11 }] },
-  { id: "d6", label: "tower", position: [8, -42], colorKey: "amber", blocks: [{ width: 5, depth: 5, height: 20 }] },
-  { id: "d7", label: "tower", position: [-12, -8], colorKey: "green", blocks: [{ width: 4, depth: 4, height: 7 }] },
-  { id: "d8", label: "tower", position: [38, 40], colorKey: "blue", blocks: [{ width: 6, depth: 6, height: 17 }] },
 ];
 
 export function generateTowerConfigs(params: FieldParams): TowerConfig[] {
@@ -182,47 +163,58 @@ export function generateTowerConfigs(params: FieldParams): TowerConfig[] {
   const count = Math.max(0, Math.round(params.decorativeCount));
   const availableColors = params.colors.length > 0 ? params.colors : [...ALL_COLORS];
 
-  const halfTile = params.tileSize / 2;
-  const margin = 4;
   const posScale = params.tileSize / TILE_SIZE;
+  const step = params.tileSize / SLOTS_PER_ROW;
 
   const content = CONTENT_TOWERS.map((tower) => {
     const seed = hash(`${tower.id}:content`);
     const random = seededRandom(seed);
     const height = randomInt(random, minH, maxH);
-    const base = tower.blocks[0] ?? { width: 6, depth: 6, height };
+    const base = tower.blocks[0] ?? { width: 10, depth: 10, height };
     const color = pickColor(tower.colorKey, availableColors, random);
-    const px = clamp(tower.position[0] * posScale, -halfTile + margin, halfTile - margin);
-    const pz = clamp(tower.position[1] * posScale, -halfTile + margin, halfTile - margin);
     return {
       ...tower,
-      position: [px, pz] as [number, number],
+      position: [tower.position[0] * posScale, tower.position[1] * posScale] as [
+        number,
+        number,
+      ],
       colorKey: color,
       blocks: [{ width: base.width, depth: base.depth, height }],
     };
   });
 
+  // Decorative monoliths fill the remaining corridor slots: first the gaps in
+  // the inner rows, then the outer rows behind them.
+  const slots: Array<[number, number]> = [];
+  for (const rowX of [-INNER_ROW, INNER_ROW, -OUTER_ROW, OUTER_ROW]) {
+    for (let s = 0; s < SLOTS_PER_ROW; s++) {
+      const x = rowX * params.tileSize;
+      const z = (s - (SLOTS_PER_ROW - 1) / 2) * step;
+      const taken = content.some(
+        (t) => Math.abs(t.position[0] - x) < step / 2 && Math.abs(t.position[1] - z) < step / 2,
+      );
+      if (!taken) slots.push([x, z]);
+    }
+  }
+
   const decorative: TowerConfig[] = [];
   for (let i = 0; i < count; i++) {
-    const source = BASE_DECORATIVE_TOWERS[i % BASE_DECORATIVE_TOWERS.length];
-    const cycle = Math.floor(i / BASE_DECORATIVE_TOWERS.length);
-    const seed = hash(`${source.id}:decor:${cycle}:${params.tileSize}`);
+    const slot = slots[i % slots.length];
+    const cycle = Math.floor(i / slots.length);
+    const seed = hash(`decor:${i}:${cycle}:${params.tileSize}`);
     const random = seededRandom(seed);
     const height = randomInt(random, minH, maxH);
-    const jitter = 8 + random() * 14;
-    const signX = random() > 0.5 ? 1 : -1;
-    const signZ = random() > 0.5 ? 1 : -1;
-    const color = pickColor(source.colorKey, availableColors, random);
-    const width = source.blocks[0]?.width ?? 5;
-    const depth = source.blocks[0]?.depth ?? 5;
-    const px = clamp(source.position[0] + signX * jitter, -halfTile + 4, halfTile - 4);
-    const pz = clamp(source.position[1] + signZ * jitter, -halfTile + 4, halfTile - 4);
+    const size = 7 + Math.floor(random() * 5);
+    const color = availableColors[Math.floor(random() * availableColors.length)];
     decorative.push({
-      id: `${source.id}-${cycle}`,
-      label: source.label,
-      position: [px, pz],
+      id: `decor-${i}`,
+      label: "tower",
+      position: [
+        slot[0] + (random() - 0.5) * 3,
+        slot[1] + (random() - 0.5) * 6,
+      ],
       colorKey: color,
-      blocks: [{ width, depth, height }],
+      blocks: [{ width: size, depth: size, height }],
     });
   }
 
@@ -255,8 +247,4 @@ function seededRandom(seed: number): () => number {
 
 function randomInt(random: () => number, min: number, max: number): number {
   return Math.floor(random() * (max - min + 1)) + min;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
 }

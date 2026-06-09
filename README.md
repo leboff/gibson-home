@@ -1,9 +1,10 @@
 # Gibson Home
 
 A 3D home page styled after the **"Gibson" supercomputer interface from the
-movie _Hackers_ (1995)**: neon stacked-block "file towers" with glowing
-wireframe edges, standing on a luminous grid floor in a foggy cyberspace void.
-The tower field loops endlessly in any horizontal direction.
+movie _Hackers_ (1995)**: glass monolith "file towers" plastered with dense
+streaming report text, aligned in rows flanking a central data corridor, on a
+black floor etched with glowing violet circuit traces. The tower field loops
+endlessly in any horizontal direction.
 
 Built with **Vite + Three.js + TypeScript**. No UI framework — the overlay cards
 are plain accessible DOM.
