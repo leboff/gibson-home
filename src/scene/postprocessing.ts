@@ -23,9 +23,9 @@ export function createComposer(
 
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(size.x * caps.bloomScale, size.y * caps.bloomScale),
-    0.65, // strength
+    0.55, // strength — a halo around the data, not a white-out
     0.45, // radius
-    0.22, // threshold — keep dark surfaces out of the bloom
+    0.3, // threshold — keep dark surfaces out of the bloom
   );
   composer.addPass(bloom);
   composer.addPass(new OutputPass());

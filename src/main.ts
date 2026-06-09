@@ -83,6 +83,7 @@ function bootstrap(): void {
     rig.update(dt);
     const { x, z } = rig.camera.position;
     field.update(x, z);
+    field.tick(dt);
     grid.update(x, z);
     menu.update(dt);
   });

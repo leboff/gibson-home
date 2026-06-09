@@ -104,6 +104,11 @@ export class TowerField {
     this.towers.length = 0;
   }
 
+  /** Animate the streaming data faces (shared by every cloned tile). */
+  tick(dt: number): void {
+    for (const tower of this.towers) tower.update(dt);
+  }
+
   /** Recentre the tile grid on the camera so the field appears endless. */
   update(cameraX: number, cameraZ: number): void {
     if (this.frozen) return;

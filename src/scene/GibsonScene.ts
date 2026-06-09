@@ -30,13 +30,15 @@ export class GibsonScene {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     mount.append(this.renderer.domElement);
 
+    // The film's Gibson sits in a pure black void; fog only swallows the
+    // corridor's vanishing point.
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x05010a);
-    this.scene.fog = new THREE.FogExp2(0x05010a, caps.isMobile ? 0.016 : 0.012);
+    this.scene.background = new THREE.Color(0x000000);
+    this.scene.fog = new THREE.FogExp2(0x000000, caps.isMobile ? 0.014 : 0.0105);
 
     // Minimal lighting — the look is driven by emissive materials + bloom.
-    this.scene.add(new THREE.AmbientLight(0x223355, 0.6));
-    const hemi = new THREE.HemisphereLight(0x3355ff, 0x110022, 0.5);
+    this.scene.add(new THREE.AmbientLight(0x1d4a55, 0.6));
+    const hemi = new THREE.HemisphereLight(0x2a8c99, 0x0a0518, 0.5);
     this.scene.add(hemi);
 
     this.composer = createComposer(this.renderer, this.scene, camera, caps);

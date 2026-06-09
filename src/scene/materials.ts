@@ -7,13 +7,18 @@ import * as THREE from "three";
  * material instance — fewer GPU state changes and less GC churn.
  */
 
+/**
+ * Tuned to the Gibson fly-through plates from Hackers (1995): icy cyan and
+ * teal-green tower glass with amber data accents, violet/blue reserved for the
+ * circuit-trace floor.
+ */
 export const PALETTE = {
-  cyan: "#00fff7",
-  magenta: "#ff2bd6",
-  green: "#39ff14",
-  amber: "#ffb000",
-  violet: "#9d4bff",
-  blue: "#2b6bff",
+  cyan: "#86e8ff",
+  magenta: "#b44dff",
+  green: "#3fffc2",
+  amber: "#ffb347",
+  violet: "#7b4dff",
+  blue: "#4f9bff",
 } as const;
 
 export type PaletteKey = keyof typeof PALETTE;
@@ -38,8 +43,8 @@ export function makeNeonMaterial(key: PaletteKey | string): THREE.MeshStandardMa
     mat = new THREE.MeshStandardMaterial({
       color,
       emissive: color,
-      emissiveIntensity: 0.24,
-      opacity: 0.26,
+      emissiveIntensity: 0.14,
+      opacity: 0.16,
       transparent: true,
       roughness: 0.22,
       metalness: 0,
@@ -55,10 +60,12 @@ export function makeEdgeMaterial(key: PaletteKey | string): THREE.LineBasicMater
   const cacheKey = String(key);
   let mat = edgeCache.get(cacheKey);
   if (!mat) {
+    // In the film plates the slab outline is faint — the data text carries
+    // almost all of the glow.
     mat = new THREE.LineBasicMaterial({
       color: resolveColor(key),
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.55,
     });
     edgeCache.set(cacheKey, mat);
   }

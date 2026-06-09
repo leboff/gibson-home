@@ -6,15 +6,15 @@ const DATA_TEXTURE_WIDTH = 512;
 const DATA_TEXTURE_HEIGHT = 1024;
 const LABEL_TEXTURE_WIDTH = 512;
 const LABEL_TEXTURE_HEIGHT = 144;
-const DATA_GLYPHS = "01ABCDEF:/[]{}<>_-";
-const DATA_CORPUS = [
-  "GIBSON KERNEL ROOT TRACE LOGIN SYS NODE DAEMON",
-  "ACCESS VECTOR MEMORY MAP ROUTE SOCKET PACKET",
-  "MAINFRAME USER AUTH TOKEN PORT SHELL PROCESS",
-  "BOOT SECTOR CACHE STACK HEAP CRYPTO CYPHER",
-  "EXEC FORK PIPE IRQ BUS GPU RENDER GRID SCAN",
-  "LOGIN ROOT SYSOP TERMINAL SESSION NETWORK",
-  "DATASTREAM ADDRESS POINTER BUFFER REGISTER",
+// Vocabulary lifted from the Gibson tower faces in the film plates: short
+// status-report fragments stacked into dense ledger columns.
+const DATA_WORDS = [
+  "REPORT", "CONFORM", "INITIATE", "OVERRIDE", "STATUS", "NOMINAL",
+  "IDEOLOGUE", "ACCESS", "SECTOR", "TRACE", "RECORD", "SIGNAL", "DECODE",
+  "MATRIX", "KERNEL", "ROUTE", "CIPHER", "UPLINK", "QUERY", "INDEX",
+  "MEMO", "FILE", "NODE", "GRID", "SCAN", "LOGIN", "ROOT", "DAEMON",
+  "SOCKET", "BUFFER", "VECTOR", "TOKEN", "SHELL", "UNIT", "TEST", "DOF",
+  "GUE", "TC", "ML", "SYS", "REGIS", "PORT",
 ];
 
 export interface HotspotUserData {
@@ -40,6 +40,13 @@ export class Tower {
   private readonly geometries: THREE.BufferGeometry[] = [];
   private readonly materials: THREE.Material[] = [];
   private readonly textures: THREE.Texture[] = [];
+
+  // Live data-face animation: a slow downward stream plus a soft flicker.
+  private dataTexture: THREE.CanvasTexture | null = null;
+  private dataMaterial: THREE.MeshBasicMaterial | null = null;
+  private scrollSpeed = 0;
+  private flickerPhase = 0;
+  private time = 0;
 
   constructor(config: TowerConfig) {
     this.object = new THREE.Group();
@@ -84,6 +91,11 @@ export class Tower {
     const { texture, material } = this.createDataMaterial(config);
     this.textures.push(texture);
     this.materials.push(material);
+    this.dataTexture = texture;
+    this.dataMaterial = material;
+    const random = this.seededRandom(this.hash(`${config.id}:anim`));
+    this.scrollSpeed = 0.004 + random() * 0.01;
+    this.flickerPhase = random() * Math.PI * 2;
 
     const eps = 0.08;
     const faces: Array<{
@@ -141,37 +153,48 @@ export class Tower {
     if (!ctx) throw new Error("Could not create tower data texture");
 
     const color = resolveColor(config.colorKey);
-    const seed = this.hash(config.id);
-    const random = this.seededRandom(seed);
+    const random = this.seededRandom(this.hash(config.id));
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = "12px monospace";
     ctx.textBaseline = "top";
 
-    for (let y = 6; y < canvas.height; y += 13 + Math.floor(random() * 5)) {
-      let x = -Math.floor(random() * 36);
-      while (x < canvas.width) {
-        const text = this.randomDataRun(random, 8 + Math.floor(random() * 18));
+    // The plates read as 2-3 narrow ledger columns per face, each packed with
+    // short report fragments, dotted-block rows, and solid bars.
+    const columnCount = 2 + Math.floor(random() * 2);
+    const gutter = 14;
+    const columnWidth = (canvas.width - gutter * (columnCount + 1)) / columnCount;
 
-        ctx.fillStyle = `rgba(${Math.round(color.r * 255)}, ${Math.round(
-          color.g * 255,
-        )}, ${Math.round(color.b * 255)}, ${0.4 + random() * 0.42})`;
-        ctx.fillText(text, x, y);
-
-        x += ctx.measureText(text).width + 5 + Math.floor(random() * 9);
+    for (let c = 0; c < columnCount; c++) {
+      const x0 = gutter + c * (columnWidth + gutter);
+      let y = Math.floor(random() * 24);
+      while (y < canvas.height - 8) {
+        const roll = random();
+        if (roll < 0.08) {
+          // Paragraph break.
+          y += 14 + Math.floor(random() * 22);
+        } else if (roll < 0.16) {
+          this.drawDotBlockRow(ctx, random, color, x0, y, columnWidth);
+          y += 14;
+        } else if (roll < 0.22) {
+          this.drawBarRow(ctx, random, color, x0, y, columnWidth);
+          y += 16;
+        } else {
+          this.drawTextRow(ctx, random, color, x0, y, columnWidth);
+          y += 13;
+        }
       }
     }
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(1, Math.max(1, this.totalHeight / 32));
+    texture.repeat.set(1, Math.max(1, this.totalHeight / 30));
     texture.anisotropy = 4;
 
     const material = new THREE.MeshBasicMaterial({
       map: texture,
       color: 0xffffff,
       transparent: true,
-      opacity: 0.72,
+      opacity: 0.85,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       side: THREE.DoubleSide,
@@ -180,27 +203,88 @@ export class Tower {
     return { texture, material };
   }
 
-  private randomDataRun(random: () => number, targetLength: number): string {
-    let text = DATA_CORPUS[Math.floor(random() * DATA_CORPUS.length)].slice(0, 2);
-    while (text.length < targetLength) {
-      const gram = text.slice(-2);
-      const next = this.nextNGramChar(gram, random);
-      text += random() > 0.9 ? DATA_GLYPHS[Math.floor(random() * DATA_GLYPHS.length)] : next;
+  /** Picks the film palette per row: mostly tinted white, occasional amber. */
+  private rowStyle(random: () => number, color: THREE.Color): string {
+    const roll = random();
+    if (roll < 0.07) {
+      // Amber accent rows, like the orange ledger blocks in the plates.
+      return `rgba(255, 176, 64, ${0.75 + random() * 0.25})`;
     }
-    return text.replace(/\s+/g, " ").slice(0, targetLength).trim();
+    // Tower tint lifted toward white so the text reads as hot data.
+    const lift = roll < 0.22 ? 0.7 : 0.3;
+    const r = Math.round((color.r + (1 - color.r) * lift) * 255);
+    const g = Math.round((color.g + (1 - color.g) * lift) * 255);
+    const b = Math.round((color.b + (1 - color.b) * lift) * 255);
+    return `rgba(${r}, ${g}, ${b}, ${0.4 + random() * 0.45})`;
   }
 
-  private nextNGramChar(gram: string, random: () => number): string {
-    const candidates: string[] = [];
-    for (const sample of DATA_CORPUS) {
-      for (let i = 0; i < sample.length - 2; i++) {
-        if (sample.slice(i, i + 2) === gram) candidates.push(sample[i + 2]);
-      }
+  /** One ledger line: indent + 1-3 short fragments (words / figures). */
+  private drawTextRow(
+    ctx: CanvasRenderingContext2D,
+    random: () => number,
+    color: THREE.Color,
+    x0: number,
+    y: number,
+    width: number,
+  ): void {
+    ctx.font = `${random() < 0.2 ? "bold " : ""}11px monospace`;
+    ctx.fillStyle = this.rowStyle(random, color);
+    let x = x0 + (random() < 0.35 ? 10 + Math.floor(random() * 26) : 0);
+    const parts = 1 + Math.floor(random() * 3);
+    for (let i = 0; i < parts && x < x0 + width - 18; i++) {
+      const text = this.dataFragment(random);
+      ctx.fillText(text, x, y, x0 + width - x);
+      x += ctx.measureText(text).width + 8 + Math.floor(random() * 10);
     }
-    if (candidates.length === 0) {
-      return DATA_CORPUS[Math.floor(random() * DATA_CORPUS.length)][0];
+  }
+
+  /** A row of small dot-matrix squares (the punched-block rows in the plates). */
+  private drawDotBlockRow(
+    ctx: CanvasRenderingContext2D,
+    random: () => number,
+    color: THREE.Color,
+    x0: number,
+    y: number,
+    width: number,
+  ): void {
+    ctx.fillStyle = this.rowStyle(random, color);
+    const dot = 4 + Math.floor(random() * 3);
+    const count = 3 + Math.floor(random() * Math.max(3, width / (dot * 2.4)));
+    let x = x0;
+    for (let i = 0; i < count && x < x0 + width - dot; i++) {
+      if (random() > 0.25) ctx.fillRect(x, y, dot, dot + 2);
+      x += dot + 3;
     }
-    return candidates[Math.floor(random() * candidates.length)];
+  }
+
+  /** A solid bright bar, like the white/amber slab highlights in the plates. */
+  private drawBarRow(
+    ctx: CanvasRenderingContext2D,
+    random: () => number,
+    color: THREE.Color,
+    x0: number,
+    y: number,
+    width: number,
+  ): void {
+    ctx.fillStyle = this.rowStyle(random, color);
+    const w = width * (0.25 + random() * 0.6);
+    const x = x0 + (random() < 0.5 ? 0 : width - w);
+    ctx.fillRect(x, y, w, 7 + Math.floor(random() * 5));
+  }
+
+  /** A short report fragment: a word, a figure run, or a word:figure pair. */
+  private dataFragment(random: () => number): string {
+    const word = DATA_WORDS[Math.floor(random() * DATA_WORDS.length)];
+    const roll = random();
+    if (roll < 0.3) {
+      let digits = "";
+      const len = 3 + Math.floor(random() * 5);
+      for (let i = 0; i < len; i++) digits += Math.floor(random() * 10);
+      return digits;
+    }
+    if (roll < 0.45) return `${word}:${Math.floor(random() * 98)}`;
+    if (roll < 0.55) return `${word}-${DATA_WORDS[Math.floor(random() * DATA_WORDS.length)]}`;
+    return word;
   }
 
   private hash(value: string): number {
@@ -344,6 +428,21 @@ export class Tower {
       }),
       { width: 0, depth: 0 },
     );
+  }
+
+  /**
+   * Stream the data faces. Clones share this texture/material by reference,
+   * so animating the prototype animates every tile.
+   */
+  update(dt: number): void {
+    this.time += dt;
+    if (this.dataTexture) this.dataTexture.offset.y -= this.scrollSpeed * dt;
+    if (this.dataMaterial) {
+      this.dataMaterial.opacity =
+        0.82 +
+        0.06 * Math.sin(this.time * 5.1 + this.flickerPhase) +
+        0.04 * Math.sin(this.time * 13.7 + this.flickerPhase * 2);
+    }
   }
 
   dispose(): void {
