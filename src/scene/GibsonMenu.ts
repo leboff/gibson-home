@@ -3,12 +3,12 @@ import { resolveColor } from "./materials";
 
 const MENU_TEXTURE_WIDTH = 768;
 const MENU_TEXTURE_HEIGHT = 1024;
-const MENU_WORLD_HEIGHT = 12;
+const MENU_WORLD_HEIGHT = 9;
 const MENU_WORLD_WIDTH = MENU_WORLD_HEIGHT * (MENU_TEXTURE_WIDTH / MENU_TEXTURE_HEIGHT);
 const FACE_OFFSET = 2;
 // Lateral travel of the panel: clears the widest tower face (~11 units wide)
 // plus half the panel, so the fully open menu sits beside the tower.
-const SIDE_OFFSET = 11;
+const SIDE_OFFSET = 10;
 const OPEN_DURATION = 0.34;
 
 const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
