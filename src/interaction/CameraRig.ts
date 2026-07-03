@@ -78,6 +78,11 @@ export class CameraRig {
   /**
    * Fly so a face-anchored panel of the given world height fills `fillRatio` of
    * the viewport height. `faceOffset` is how far the panel floats off the face.
+   * `spanWidth` (world units) additionally backs the camera off until that
+   * horizontal span fits the viewport, and `lateral` shifts the framing centre
+   * sideways along the face — used to centre on a tower plus its popped-out
+   * side menu. The standoff is capped so the camera stays inside the corridor
+   * aisle (~20 units between facing tower rows) even on narrow viewports.
    *
    * The camera is given a small downward tilt (height proportional to distance)
    * so the polar angle stays inside OrbitControls' limits; a near-level shot
@@ -90,12 +95,17 @@ export class CameraRig {
     faceOffset: number,
     fillRatio: number,
     onComplete?: () => void,
+    lateral = 0,
+    spanWidth = 0,
   ): void {
     const vFov = THREE.MathUtils.degToRad(this.camera.fov);
-    const perpDistance = panelHeight / (fillRatio * 2 * Math.tan(vFov / 2));
-    const distance = perpDistance + faceOffset;
+    const tanHalf = Math.tan(vFov / 2);
+    const fitHeight = panelHeight / (fillRatio * 2 * tanHalf);
+    const fitWidth =
+      spanWidth > 0 ? spanWidth / (fillRatio * 2 * tanHalf * this.camera.aspect) : 0;
+    const distance = Math.min(Math.max(fitHeight, fitWidth) + faceOffset, 18);
     const height = distance * 0.18;
-    this.flyTo(mesh, onComplete, distance, height);
+    this.flyTo(mesh, onComplete, distance, height, lateral);
   }
 
   /**
@@ -105,9 +115,20 @@ export class CameraRig {
   // The default standoff must fit inside the corridor aisle (~20 units of
   // clearance between facing tower rows), or the camera lands inside the
   // opposite row.
-  flyTo(mesh: THREE.Object3D, onComplete?: () => void, distance = 14, height = 3.5): void {
+  flyTo(
+    mesh: THREE.Object3D,
+    onComplete?: () => void,
+    distance = 14,
+    height = 3.5,
+    lateral = 0,
+  ): void {
     const p = mesh.getWorldPosition(new THREE.Vector3());
     const normal = mesh.getWorldDirection(new THREE.Vector3()).normalize();
+    if (lateral !== 0) {
+      // Shift the framing centre along the face (matches the menu's slide axis).
+      const side = new THREE.Vector3().crossVectors(this.camera.up, normal).normalize();
+      p.addScaledVector(side, lateral);
+    }
     this.flyTarget.copy(p);
     this.flyPos.copy(p).addScaledVector(normal, distance);
     this.flyPos.y += height;

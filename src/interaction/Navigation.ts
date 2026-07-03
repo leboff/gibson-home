@@ -216,14 +216,23 @@ export class Navigation {
     this.flyToFraming(mesh, index);
   }
 
-  /** Fly so the menu panel fills ~90% of the viewport height, then present it. */
+  /**
+   * Fly to a standoff that shows the tower with its side menu popped out: the
+   * panel fills ~70% of the viewport height, the framing centre sits midway
+   * between the tower face and the panel, and the standoff also backs off (on
+   * narrow viewports) until the tower-plus-panel span fits.
+   */
   private flyToFraming(mesh: THREE.Mesh, index: number): void {
+    // Tower half-width (~5.5 for the widest slab) + slide distance + half panel.
+    const spanWidth = 5.5 + this.menu.sideOffset + this.menu.panelWidth / 2;
     this.rig.flyToFill(
       mesh,
       this.menu.panelHeight,
       this.menu.faceOffset,
-      0.9,
+      0.7,
       () => this.presentMenu(index, mesh),
+      this.menu.sideOffset / 2,
+      spanWidth,
     );
   }
 
