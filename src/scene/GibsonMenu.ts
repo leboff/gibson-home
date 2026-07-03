@@ -4,7 +4,11 @@ import { resolveColor } from "./materials";
 const MENU_TEXTURE_WIDTH = 768;
 const MENU_TEXTURE_HEIGHT = 1024;
 const MENU_WORLD_HEIGHT = 12;
+const MENU_WORLD_WIDTH = MENU_WORLD_HEIGHT * (MENU_TEXTURE_WIDTH / MENU_TEXTURE_HEIGHT);
 const FACE_OFFSET = 2;
+// Lateral travel of the panel: clears the widest tower face (~11 units wide)
+// plus half the panel, so the fully open menu sits beside the tower.
+const SIDE_OFFSET = 11;
 const OPEN_DURATION = 0.34;
 
 const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
@@ -14,12 +18,13 @@ const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
  *
  * It lists every site section (one row each, with a `>` cursor) and highlights
  * the active row in a boxed accent — echoing the Gibson UI from the film. The
- * panel is anchored just in front of the selected hotspot's tower face and is
- * re-synced to that face each frame, so it stays glued in place as the tiled
- * tower field recentres on the moving camera.
+ * panel is anchored to the selected hotspot's tower face and is re-synced to
+ * that face each frame, so it stays glued in place as the tiled tower field
+ * recentres on the moving camera.
  *
- * On open it animates out of the tower face (growing + sliding forward + fading
- * in). Individual rows are pickable via UV → row mapping (see `rowAtUv`).
+ * On open it slides out sideways from the tower — unfolding beside the slab
+ * like the file panels in the film — while fading in. Individual rows are
+ * pickable via UV → row mapping (see `rowAtUv`).
  */
 export class GibsonMenu {
   readonly object: THREE.Group;
@@ -42,6 +47,7 @@ export class GibsonMenu {
   private readonly worldPos = new THREE.Vector3();
   private readonly worldQuat = new THREE.Quaternion();
   private readonly normal = new THREE.Vector3();
+  private readonly side = new THREE.Vector3();
 
   constructor() {
     this.object = new THREE.Group();
@@ -86,6 +92,16 @@ export class GibsonMenu {
   /** How far the panel floats in front of its anchor tower face. */
   get faceOffset(): number {
     return FACE_OFFSET;
+  }
+
+  /** World-space width of the panel. */
+  get panelWidth(): number {
+    return MENU_WORLD_WIDTH;
+  }
+
+  /** Lateral distance the panel ends up beside its anchor tower face. */
+  get sideOffset(): number {
+    return SIDE_OFFSET;
   }
 
   /** The single mesh used as a raycast target while the menu is open. */
@@ -137,13 +153,21 @@ export class GibsonMenu {
     this.anchor.getWorldPosition(this.worldPos);
     this.anchor.getWorldQuaternion(this.worldQuat);
     this.normal.set(0, 0, 1).applyQuaternion(this.worldQuat);
+    this.side.set(1, 0, 0).applyQuaternion(this.worldQuat);
 
-    const offset = THREE.MathUtils.lerp(0.3, FACE_OFFSET, e);
-    this.object.position.copy(this.worldPos).addScaledVector(this.normal, offset);
+    // Slide out sideways from the slab, unfolding horizontally as it travels.
+    const lateral = THREE.MathUtils.lerp(SIDE_OFFSET * 0.15, SIDE_OFFSET, e);
+    this.object.position
+      .copy(this.worldPos)
+      .addScaledVector(this.normal, FACE_OFFSET)
+      .addScaledVector(this.side, lateral);
     this.object.quaternion.copy(this.worldQuat);
 
-    const scale = THREE.MathUtils.lerp(0.08, 1, e);
-    this.object.scale.set(scale, scale, scale);
+    this.object.scale.set(
+      THREE.MathUtils.lerp(0.1, 1, e),
+      THREE.MathUtils.lerp(0.72, 1, e),
+      1,
+    );
     this.material.opacity = e;
   }
 
