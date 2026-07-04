@@ -217,22 +217,23 @@ export class Navigation {
   }
 
   /**
-   * Fly to a standoff that shows the tower with its side menu popped out: the
-   * panel fills ~70% of the viewport height, the framing centre sits midway
-   * between the tower face and the panel, and the standoff also backs off (on
-   * narrow viewports) until the tower-plus-panel span fits.
+   * Fly to a standoff that shows the tower with its side menu popped out. The
+   * rig fits the panel to ~55% of the viewport height and keeps the panel
+   * fully in frame even on narrow (portrait) viewports.
    */
   private flyToFraming(mesh: THREE.Mesh, index: number): void {
-    // Tower half-width (~5.5 for the widest slab) + slide distance + half panel.
-    const spanWidth = 5.5 + this.menu.sideOffset + this.menu.panelWidth / 2;
     this.rig.flyToFill(
       mesh,
-      this.menu.panelHeight,
-      this.menu.faceOffset,
-      0.7,
+      {
+        panelHeight: this.menu.panelHeight,
+        faceOffset: this.menu.faceOffset,
+        fill: 0.55,
+        sideOffset: this.menu.sideOffset,
+        panelWidth: this.menu.panelWidth,
+        // Half-width of the widest tower slab (11 units wide).
+        towerHalfWidth: 5.5,
+      },
       () => this.presentMenu(index, mesh),
-      this.menu.sideOffset / 2,
-      spanWidth,
     );
   }
 

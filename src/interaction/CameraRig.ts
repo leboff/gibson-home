@@ -1,6 +1,26 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
+/** Geometry of a tower-plus-side-menu composition for `flyToFill` framing. */
+export interface MenuFramingSpec {
+  /** World-space height of the menu panel. */
+  panelHeight: number;
+  /** How far the panel floats in front of the tower face. */
+  faceOffset: number;
+  /** Fraction of the viewport height the panel should fill. */
+  fill: number;
+  /** Lateral distance from the face centre to the panel centre. */
+  sideOffset: number;
+  /** World-space width of the menu panel. */
+  panelWidth: number;
+  /** Half-width of the widest tower face. */
+  towerHalfWidth: number;
+}
+
+// Cap on the menu-framing standoff so the camera stays inside the corridor
+// aisle (~20 units of clearance between facing tower rows).
+const MAX_STANDOFF = 18;
+
 /**
  * Owns the camera and OrbitControls and provides two motion modes:
  *
@@ -76,34 +96,37 @@ export class CameraRig {
   }
 
   /**
-   * Fly so a face-anchored panel of the given world height fills `fillRatio` of
-   * the viewport height. `faceOffset` is how far the panel floats off the face.
-   * `spanWidth` (world units) additionally backs the camera off until that
-   * horizontal span fits the viewport, and `lateral` shifts the framing centre
-   * sideways along the face — used to centre on a tower plus its popped-out
-   * side menu. The standoff is capped so the camera stays inside the corridor
-   * aisle (~20 units between facing tower rows) even on narrow viewports.
+   * Fly to frame a tower face with its popped-out side menu. The standoff makes
+   * the panel fill `spec.fill` of the viewport height (backed off further if
+   * the whole tower-plus-panel span fits within `MAX_STANDOFF`), and the
+   * framing centre starts at the tower/panel midpoint but slides toward the
+   * panel on narrow viewports so the panel's far edge always stays in frame.
    *
    * The camera is given a small downward tilt (height proportional to distance)
    * so the polar angle stays inside OrbitControls' limits; a near-level shot
    * would hit `maxPolarAngle`, making `controls.update()` fight the fly tween so
    * it never converges (and the on-arrival callback would never fire).
    */
-  flyToFill(
-    mesh: THREE.Object3D,
-    panelHeight: number,
-    faceOffset: number,
-    fillRatio: number,
-    onComplete?: () => void,
-    lateral = 0,
-    spanWidth = 0,
-  ): void {
+  flyToFill(mesh: THREE.Object3D, spec: MenuFramingSpec, onComplete?: () => void): void {
     const vFov = THREE.MathUtils.degToRad(this.camera.fov);
     const tanHalf = Math.tan(vFov / 2);
-    const fitHeight = panelHeight / (fillRatio * 2 * tanHalf);
-    const fitWidth =
-      spanWidth > 0 ? spanWidth / (fillRatio * 2 * tanHalf * this.camera.aspect) : 0;
-    const distance = Math.min(Math.max(fitHeight, fitWidth) + faceOffset, 18);
+    const aspect = this.camera.aspect;
+
+    const fitHeight = spec.panelHeight / (spec.fill * 2 * tanHalf) + spec.faceOffset;
+    const span = spec.towerHalfWidth + spec.sideOffset + spec.panelWidth / 2;
+    const fitSpan = span / (2 * tanHalf * aspect) + spec.faceOffset;
+    const distance = Math.min(Math.max(fitHeight, fitSpan), MAX_STANDOFF);
+
+    // Visible half-width at the panel's depth (with a 5% safety margin): if the
+    // panel's far edge would fall outside it, shift the framing centre from the
+    // midpoint toward the panel centre until the panel fits.
+    const halfView = (distance - spec.faceOffset) * tanHalf * aspect * 0.95;
+    const lateral = THREE.MathUtils.clamp(
+      spec.sideOffset + spec.panelWidth / 2 - halfView,
+      spec.sideOffset / 2,
+      spec.sideOffset,
+    );
+
     const height = distance * 0.18;
     this.flyTo(mesh, onComplete, distance, height, lateral);
   }
